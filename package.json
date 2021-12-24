@@ -39,7 +39,7 @@
   },
   "dependencies": {
     "fakegato-history": "^0.6.1",
-    "knx": "jendrik/knx.js",
+    "knx": "^2.4.1",
     "npm": "^7.6.1"
   }
 }
