@@ -1,11 +1,10 @@
-import { AccessoryConfig, AccessoryPlugin, CharacteristicValue, Service } from 'homebridge';
+import type { AccessoryPlugin, CharacteristicValue, Service } from 'homebridge';
 
 import { Datapoint } from 'knx';
-import fakegato from 'fakegato-history';
 
-import { PLUGIN_NAME, PLUGIN_VERSION, PLUGIN_DISPLAY_NAME } from './settings';
+import { PLUGIN_NAME, PLUGIN_VERSION, PLUGIN_DISPLAY_NAME } from './settings.js';
 
-import { ThermoPlatform } from './platform';
+import { ThermoPlatform } from './platform.js';
 
 
 export class ThermoAccessory implements AccessoryPlugin {
@@ -18,12 +17,13 @@ export class ThermoAccessory implements AccessoryPlugin {
   private valvePosition = NaN;
 
   private readonly thermostatService: Service;
-  private readonly loggingService: fakegato;
+  // eslint-disable-next-line @typescript-eslint/no-explicit-any
+  private readonly loggingService: any;
   private readonly informationService: Service;
 
   constructor(
     private readonly platform: ThermoPlatform,
-    private readonly config: AccessoryConfig,
+    private readonly config: Record<string, unknown>,
   ) {
 
     class EveThermoValvePosition extends platform.Characteristic {
@@ -31,39 +31,15 @@ export class ThermoAccessory implements AccessoryPlugin {
 
       constructor() {
         super('Valve Position', EveThermoValvePosition.UUID, {
-          format: platform.Characteristic.Formats.UINT8,
-          unit: platform.Characteristic.Units.PERCENTAGE,
-          perms: [platform.Characteristic.Perms.READ, platform.Characteristic.Perms.NOTIFY],
+          format: platform.api.hap.Formats.UINT8,
+          unit: platform.api.hap.Units.PERCENTAGE,
+          perms: [platform.api.hap.Perms.PAIRED_READ, platform.api.hap.Perms.NOTIFY],
         });
         this.value = this.getDefaultValue();
       }
     }
 
-    // class EveThermoProgramCommand extends platform.Characteristic {
-    //   public static readonly UUID: string = 'E863F12C-079E-48FF-8F27-9C2605A29F52';
-
-    //   constructor() {
-    //     super('Program Command', EveThermoProgramCommand.UUID, {
-    //       format: platform.Characteristic.Formats.DATA,
-    //       perms: [platform.Characteristic.Perms.WRITE],
-    //     });
-    //     this.value = this.getDefaultValue();
-    //   }
-    // }
-
-    // class EveThermoProgramData extends platform.Characteristic {
-    //   public static readonly UUID: string = 'E863F12F-079E-48FF-8F27-9C2605A29F52';
-
-    //   constructor() {
-    //     super('Program Data', EveThermoProgramData.UUID, {
-    //       format: platform.Characteristic.Formats.DATA,
-    //       perms: [platform.Characteristic.Perms.READ, platform.Characteristic.Perms.NOTIFY],
-    //     });
-    //     this.value = this.getDefaultValue();
-    //   }
-    // }
-
-    this.name = config.name;
+    this.name = config.name as string;
     this.uuid_base = platform.uuid.generate(PLUGIN_NAME + '-' + this.name + '-' + config.listen_current_temperature);
     this.displayName = this.uuid_base;
 
@@ -77,10 +53,6 @@ export class ThermoAccessory implements AccessoryPlugin {
 
     this.thermostatService = new platform.Service.Thermostat(this.name);
     this.thermostatService.getCharacteristic(platform.Characteristic.StatusActive).updateValue(true);
-
-    // schedules
-    // this.thermostatService.addCharacteristic(EveThermoProgramCommand);
-    // this.thermostatService.addCharacteristic(EveThermoProgramData);
 
     this.loggingService = new platform.fakeGatoHistoryService('thermo', this, { storage: 'fs', log: platform.log });
 
@@ -112,12 +84,12 @@ export class ThermoAccessory implements AccessoryPlugin {
 
     // Current Temperature
     const dp_listen_current_temperature = new Datapoint({
-      ga: config.listen_current_temperature,
+      ga: config.listen_current_temperature as string,
       dpt: 'DPT9.001',
       autoread: true,
     }, platform.connection);
 
-    dp_listen_current_temperature.on('change', (oldValue: number, newValue: number) => {
+    dp_listen_current_temperature.on('change', (_oldValue: number, newValue: number) => {
       this.currentTemp = newValue;
       platform.log.info(`Current Temperature: ${this.currentTemp}`);
       this.thermostatService.getCharacteristic(platform.Characteristic.CurrentTemperature).updateValue(this.currentTemp);
@@ -135,12 +107,12 @@ export class ThermoAccessory implements AccessoryPlugin {
     // Target Temperature
     if (config.listen_target_temperature !== undefined) {
       const dp_listen_target_temperature = new Datapoint({
-        ga: config.listen_target_temperature,
+        ga: config.listen_target_temperature as string,
         dpt: 'DPT9.001',
         autoread: true,
       }, platform.connection);
 
-      dp_listen_target_temperature.on('change', (oldValue: number, newValue: number) => {
+      dp_listen_target_temperature.on('change', (_oldValue: number, newValue: number) => {
         this.setTemp = newValue;
         platform.log.info(`Target Temperature: ${this.setTemp}`);
         this.thermostatService.getCharacteristic(platform.Characteristic.TargetTemperature).updateValue(this.setTemp);
@@ -158,12 +130,12 @@ export class ThermoAccessory implements AccessoryPlugin {
 
     if (config.set_target_temperature !== undefined) {
       const dp_set_target_temperature = new Datapoint({
-        ga: config.set_target_temperature,
+        ga: config.set_target_temperature as string,
         dpt: 'DPT9.001',
         autoread: true,
       }, platform.connection);
 
-      dp_set_target_temperature.on('change', (oldValue: number, newValue: number) => {
+      dp_set_target_temperature.on('change', (_oldValue: number, newValue: number) => {
         platform.log.info(`Target Temperature from KNX: ${newValue}`);
         this.thermostatService.getCharacteristic(platform.Characteristic.TargetTemperature).updateValue(newValue);
       });
@@ -178,12 +150,12 @@ export class ThermoAccessory implements AccessoryPlugin {
     // HeatingCooling State
     if (config.listen_current_heating_cooling_state !== undefined) {
       const dp_listen_current_heating_cooling_state = new Datapoint({
-        ga: config.listen_current_heating_cooling_state,
+        ga: config.listen_current_heating_cooling_state as string,
         dpt: 'DPT7',
         autoread: true,
       }, platform.connection);
 
-      dp_listen_current_heating_cooling_state.on('change', (oldValue: number, newValue: number) => {
+      dp_listen_current_heating_cooling_state.on('change', (_oldValue: number, newValue: number) => {
         platform.log.info(`listen_current_heating_cooling_state: ${newValue}`);
 
         const RHCC_HEATING = 1 << 8;
@@ -205,12 +177,12 @@ export class ThermoAccessory implements AccessoryPlugin {
 
     if (config.listen_target_heating_cooling_state !== undefined) {
       const dp_listen_target_heating_cooling_state = new Datapoint({
-        ga: config.listen_target_heating_cooling_state,
+        ga: config.listen_target_heating_cooling_state as string,
         dpt: 'DPT7',
         autoread: true,
       }, platform.connection);
 
-      dp_listen_target_heating_cooling_state.on('change', (oldValue: number, newValue: number) => {
+      dp_listen_target_heating_cooling_state.on('change', (_oldValue: number, newValue: number) => {
         platform.log.info(`listen_target_heating_cooling_state: ${newValue}`);
       });
     }
@@ -225,12 +197,12 @@ export class ThermoAccessory implements AccessoryPlugin {
       this.thermostatService.addCharacteristic(EveThermoValvePosition);
 
       const dp_listen_valve_position = new Datapoint({
-        ga: config.listen_valve_position,
+        ga: config.listen_valve_position as string,
         dpt: 'DPT5.001',
         autoread: true,
       }, platform.connection);
 
-      dp_listen_valve_position.on('change', (oldValue: number, newValue: number) => {
+      dp_listen_valve_position.on('change', (_oldValue: number, newValue: number) => {
         this.valvePosition = newValue;
         platform.log.info(`Current Valve Position: ${this.valvePosition}`);
         this.thermostatService.getCharacteristic(EveThermoValvePosition).updateValue(this.valvePosition);
