@@ -8,4 +8,4 @@ export const PLATFORM_NAME = 'knx-thermo';
  */
 export const PLUGIN_NAME = '@jendrik/homebridge-knx-thermo';
 export const PLUGIN_DISPLAY_NAME = 'KNX Thermo';
-export const PLUGIN_VERSION = '0.1.2';
+export const PLUGIN_VERSION = '0.2.0';
