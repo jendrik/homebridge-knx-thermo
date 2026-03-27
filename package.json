@@ -3,7 +3,7 @@
   "name": "@jendrik/homebridge-knx-thermo",
   "type": "module",
   "version": "0.1.2",
-  "description": "Homebridge plugin for KNX Door & Window Contact Sensors",
+  "description": "Homebridge plugin for KNX thermostats",
   "license": "Apache-2.0",
   "repository": {
     "type": "git",
