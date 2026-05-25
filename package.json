@@ -2,7 +2,7 @@
   "displayName": "KNX Thermo",
   "name": "@jendrik/homebridge-knx-thermo",
   "type": "module",
-  "version": "0.2.0",
+  "version": "0.3.0",
   "description": "Homebridge plugin for KNX thermostats",
   "license": "Apache-2.0",
   "repository": {
