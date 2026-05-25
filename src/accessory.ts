@@ -5,6 +5,7 @@ import { Datapoint } from 'knx';
 import { PLUGIN_NAME, PLUGIN_VERSION, PLUGIN_DISPLAY_NAME } from './settings.js';
 
 import type { ThermoDeviceConfig } from './config.js';
+import { ThermoHistory } from './history.js';
 import { ThermoPlatform } from './platform.js';
 
 
@@ -18,8 +19,7 @@ export class ThermoAccessory implements AccessoryPlugin {
   private valvePosition = NaN;
 
   private readonly thermostatService: Service;
-  // eslint-disable-next-line @typescript-eslint/no-explicit-any
-  private readonly loggingService: any;
+  private readonly history: ThermoHistory;
   private readonly informationService: Service;
 
   constructor(
@@ -55,33 +55,11 @@ export class ThermoAccessory implements AccessoryPlugin {
     this.thermostatService = new platform.Service.Thermostat(this.name);
     this.thermostatService.getCharacteristic(platform.Characteristic.StatusActive).updateValue(true);
 
-    this.loggingService = new platform.fakeGatoHistoryService('thermo', this, { storage: 'fs', log: platform.log });
-
-    // initialize from history
-    for (let i = this.loggingService.history.length; i > 0; --i) {
-      if (isNaN(this.currentTemp)
-      && this.loggingService.history[i - 1].currentTemp !== undefined) {
-        this.currentTemp = this.loggingService.history[i - 1].currentTemp;
-      }
-      if (isNaN(this.setTemp)
-      && this.loggingService.history[i - 1].setTemp !== undefined) {
-        this.setTemp = this.loggingService.history[i - 1].setTemp;
-      }
-      if (isNaN(this.valvePosition)
-      && this.loggingService.history[i - 1].valvePosition !== undefined
-      && this.loggingService.history[i - 1].valvePosition !== null) {
-        this.valvePosition = this.loggingService.history[i - 1].valvePosition;
-      }
-    }
-    if (isNaN(this.currentTemp)) {
-      this.currentTemp = 0.0;
-    }
-    if (isNaN(this.setTemp)) {
-      this.setTemp = 10.0;
-    }
-    if (isNaN(this.valvePosition)) {
-      this.valvePosition = 0.0;
-    }
+    this.history = new ThermoHistory(platform, this);
+    const historyState = this.history.restore();
+    this.currentTemp = historyState.currentTemp;
+    this.setTemp = historyState.setTemp;
+    this.valvePosition = historyState.valvePosition;
 
     // Current Temperature
     const dp_listen_current_temperature = new Datapoint({
@@ -94,11 +72,7 @@ export class ThermoAccessory implements AccessoryPlugin {
       this.currentTemp = newValue;
       platform.log.info(`Current Temperature: ${this.currentTemp}`);
       this.thermostatService.getCharacteristic(platform.Characteristic.CurrentTemperature).updateValue(this.currentTemp);
-      this.loggingService._addEntry({ time: Math.round(new Date().valueOf() / 1000),
-        currentTemp: this.currentTemp,
-        setTemp: this.setTemp,
-        valvePosition: this.valvePosition,
-      });
+      this.recordHistory();
     });
 
     this.thermostatService.getCharacteristic(platform.Characteristic.CurrentTemperature).onGet(async () => {
@@ -117,11 +91,7 @@ export class ThermoAccessory implements AccessoryPlugin {
         this.setTemp = newValue;
         platform.log.info(`Target Temperature: ${this.setTemp}`);
         this.thermostatService.getCharacteristic(platform.Characteristic.TargetTemperature).updateValue(this.setTemp);
-        this.loggingService._addEntry({ time: Math.round(new Date().valueOf() / 1000),
-          currentTemp: this.currentTemp,
-          setTemp: this.setTemp,
-          valvePosition: this.valvePosition,
-        });
+        this.recordHistory();
       });
 
       this.thermostatService.getCharacteristic(platform.Characteristic.TargetTemperature).onGet(async () => {
@@ -207,11 +177,7 @@ export class ThermoAccessory implements AccessoryPlugin {
         this.valvePosition = newValue;
         platform.log.info(`Current Valve Position: ${this.valvePosition}`);
         this.thermostatService.getCharacteristic(EveThermoValvePosition).updateValue(this.valvePosition);
-        this.loggingService._addEntry({ time: Math.round(new Date().valueOf() / 1000),
-          currentTemp: this.currentTemp,
-          setTemp: this.setTemp,
-          valvePosition: this.valvePosition,
-        });
+        this.recordHistory();
       });
 
       this.thermostatService.getCharacteristic(EveThermoValvePosition).onGet(async () => {
@@ -224,7 +190,15 @@ export class ThermoAccessory implements AccessoryPlugin {
     return [
       this.informationService,
       this.thermostatService,
-      this.loggingService,
+      this.history.service,
     ];
+  }
+
+  private recordHistory(): void {
+    this.history.record({
+      currentTemp: this.currentTemp,
+      setTemp: this.setTemp,
+      valvePosition: this.valvePosition,
+    });
   }
 }
