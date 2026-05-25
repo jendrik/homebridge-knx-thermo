@@ -29,7 +29,8 @@ interface FakeGatoThermoHistoryEntry {
 
 interface FakeGatoThermoService extends Service {
   history: FakeGatoThermoHistoryEntry[];
-  _addEntry(entry: ThermoHistoryEntry & { time: number }): void;
+  addEntry(entry: ThermoHistoryEntry & { time: number }): void;
+  isHistoryLoaded(): boolean;
 }
 
 interface IndexedFakeGatoThermoHistoryEntry {
@@ -79,6 +80,7 @@ export class ThermoHistory {
   public readonly service: Service;
 
   private readonly fakeGatoService: FakeGatoThermoService;
+  private loadedTimeout: ReturnType<typeof setTimeout> | undefined;
 
   constructor(platform: ThermoPlatform, accessory: AccessoryPlugin) {
     const HistoryService = platform.fakeGatoHistoryService as FakeGatoHistoryServiceConstructor;
@@ -123,8 +125,31 @@ export class ThermoHistory {
     return state;
   }
 
+  onLoaded(callback: (state: ThermoHistoryState) => void): void {
+    this.stop();
+
+    const notifyWhenLoaded = () => {
+      if (this.fakeGatoService.isHistoryLoaded()) {
+        this.loadedTimeout = undefined;
+        callback(this.restore());
+        return;
+      }
+
+      this.loadedTimeout = setTimeout(notifyWhenLoaded, 100);
+    };
+
+    notifyWhenLoaded();
+  }
+
+  stop(): void {
+    if (this.loadedTimeout !== undefined) {
+      clearTimeout(this.loadedTimeout);
+      this.loadedTimeout = undefined;
+    }
+  }
+
   record(entry: ThermoHistoryEntry): void {
-    this.fakeGatoService._addEntry({
+    this.fakeGatoService.addEntry({
       time: Math.round(new Date().valueOf() / 1000),
       currentTemp: entry.currentTemp,
       setTemp: entry.setTemp,

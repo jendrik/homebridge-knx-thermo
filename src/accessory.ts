@@ -184,6 +184,19 @@ export class ThermoAccessory implements AccessoryPlugin {
         return this.valvePosition;
       });
     }
+
+    this.history.onLoaded((loadedState) => {
+      this.currentTemp = loadedState.currentTemp;
+      this.setTemp = loadedState.setTemp;
+      this.valvePosition = loadedState.valvePosition;
+
+      this.thermostatService.getCharacteristic(platform.Characteristic.CurrentTemperature).updateValue(this.currentTemp);
+      this.thermostatService.getCharacteristic(platform.Characteristic.TargetTemperature).updateValue(this.setTemp);
+
+      if (config.listen_valve_position !== undefined) {
+        this.thermostatService.getCharacteristic(EveThermoValvePosition).updateValue(this.valvePosition);
+      }
+    });
   }
 
   getServices(): Service[] {
