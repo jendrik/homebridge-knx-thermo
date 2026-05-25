@@ -7,6 +7,10 @@ import { ThermoAccessory } from './accessory.js';
 import { parseThermoConfig } from './config.js';
 
 
+type DisconnectableConnection = Connection & {
+  Disconnect?: () => void;
+};
+
 export class ThermoPlatform implements StaticPlatformPlugin {
   public readonly Service: typeof Service;
   public readonly Characteristic: typeof Characteristic;
@@ -47,6 +51,17 @@ export class ThermoPlatform implements StaticPlatformPlugin {
     // read devices
     thermoConfig.devices.forEach((device) => {
       this.devices.push(new ThermoAccessory(this, device));
+    });
+
+    api.on('shutdown', () => {
+      this.devices.forEach((device) => {
+        device.stop();
+      });
+
+      const connection = this.connection as DisconnectableConnection;
+      if (typeof connection.Disconnect === 'function') {
+        connection.Disconnect();
+      }
     });
 
     log.info('finished initializing!');

@@ -216,6 +216,10 @@ export class ThermoAccessory implements AccessoryPlugin {
     ];
   }
 
+  stop(): void {
+    this.history.stop();
+  }
+
   private recordHistory(): void {
     this.history.record({
       currentTemp: this.currentTemp,
