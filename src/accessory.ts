@@ -17,6 +17,9 @@ export class ThermoAccessory implements AccessoryPlugin {
   private currentTemp = NaN;
   private setTemp = NaN;
   private valvePosition = NaN;
+  private hasLiveCurrentTemp = false;
+  private hasLiveSetTemp = false;
+  private hasLiveValvePosition = false;
 
   private readonly thermostatService: Service;
   private readonly history: ThermoHistory;
@@ -69,6 +72,7 @@ export class ThermoAccessory implements AccessoryPlugin {
     }, platform.connection);
 
     dp_listen_current_temperature.on('change', (_oldValue: number, newValue: number) => {
+      this.hasLiveCurrentTemp = true;
       this.currentTemp = newValue;
       platform.log.info(`Current Temperature: ${this.currentTemp}`);
       this.thermostatService.getCharacteristic(platform.Characteristic.CurrentTemperature).updateValue(this.currentTemp);
@@ -88,6 +92,7 @@ export class ThermoAccessory implements AccessoryPlugin {
       }, platform.connection);
 
       dp_listen_target_temperature.on('change', (_oldValue: number, newValue: number) => {
+        this.hasLiveSetTemp = true;
         this.setTemp = newValue;
         platform.log.info(`Target Temperature: ${this.setTemp}`);
         this.thermostatService.getCharacteristic(platform.Characteristic.TargetTemperature).updateValue(this.setTemp);
@@ -174,6 +179,7 @@ export class ThermoAccessory implements AccessoryPlugin {
       }, platform.connection);
 
       dp_listen_valve_position.on('change', (_oldValue: number, newValue: number) => {
+        this.hasLiveValvePosition = true;
         this.valvePosition = newValue;
         platform.log.info(`Current Valve Position: ${this.valvePosition}`);
         this.thermostatService.getCharacteristic(EveThermoValvePosition).updateValue(this.valvePosition);
@@ -186,14 +192,16 @@ export class ThermoAccessory implements AccessoryPlugin {
     }
 
     this.history.onLoaded((loadedState) => {
-      this.currentTemp = loadedState.currentTemp;
-      this.setTemp = loadedState.setTemp;
-      this.valvePosition = loadedState.valvePosition;
-
-      this.thermostatService.getCharacteristic(platform.Characteristic.CurrentTemperature).updateValue(this.currentTemp);
-      this.thermostatService.getCharacteristic(platform.Characteristic.TargetTemperature).updateValue(this.setTemp);
-
-      if (config.listen_valve_position !== undefined) {
+      if (!this.hasLiveCurrentTemp) {
+        this.currentTemp = loadedState.currentTemp;
+        this.thermostatService.getCharacteristic(platform.Characteristic.CurrentTemperature).updateValue(this.currentTemp);
+      }
+      if (!this.hasLiveSetTemp) {
+        this.setTemp = loadedState.setTemp;
+        this.thermostatService.getCharacteristic(platform.Characteristic.TargetTemperature).updateValue(this.setTemp);
+      }
+      if (!this.hasLiveValvePosition && config.listen_valve_position !== undefined) {
+        this.valvePosition = loadedState.valvePosition;
         this.thermostatService.getCharacteristic(EveThermoValvePosition).updateValue(this.valvePosition);
       }
     });
