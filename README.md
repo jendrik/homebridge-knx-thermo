@@ -14,7 +14,7 @@ Homebridge plugin for KNX thermostats. Exposes KNX-based thermostat devices to A
 
 - [Homebridge](https://homebridge.io) v2.0.0+
 - Node.js v22 or v24
-- KNX IP router/interface
+- A KNX IP router or interface on the network
 
 ## Installation
 

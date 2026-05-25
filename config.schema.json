@@ -9,12 +9,13 @@
       "ip": {
         "title": "KNX Router or Interface",
         "type": "string",
+        "default": "224.0.23.12",
         "placeholder": "224.0.23.12",
         "description": "IP of the KNX Router."
       },
       "port": {
         "title": "KNX Port",
-        "type": "number",
+        "type": "integer",
         "default": 3671,
         "minimum": 1,
         "maximum": 65535,
