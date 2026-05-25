@@ -72,11 +72,7 @@ export class ThermoAccessory implements AccessoryPlugin {
     }, platform.connection);
 
     dp_listen_current_temperature.on('change', (_oldValue: number, newValue: number) => {
-      this.hasLiveCurrentTemp = true;
-      this.currentTemp = newValue;
-      platform.log.info(`Current Temperature: ${this.currentTemp}`);
-      this.thermostatService.getCharacteristic(platform.Characteristic.CurrentTemperature).updateValue(this.currentTemp);
-      this.recordHistory();
+      this.updateCurrentTemperature(newValue);
     });
 
     this.thermostatService.getCharacteristic(platform.Characteristic.CurrentTemperature).onGet(async () => {
@@ -92,11 +88,7 @@ export class ThermoAccessory implements AccessoryPlugin {
       }, platform.connection);
 
       dp_listen_target_temperature.on('change', (_oldValue: number, newValue: number) => {
-        this.hasLiveSetTemp = true;
-        this.setTemp = newValue;
-        platform.log.info(`Target Temperature: ${this.setTemp}`);
-        this.thermostatService.getCharacteristic(platform.Characteristic.TargetTemperature).updateValue(this.setTemp);
-        this.recordHistory();
+        this.updateTargetTemperature(newValue, 'KNX');
       });
 
       this.thermostatService.getCharacteristic(platform.Characteristic.TargetTemperature).onGet(async () => {
@@ -112,14 +104,23 @@ export class ThermoAccessory implements AccessoryPlugin {
       }, platform.connection);
 
       dp_set_target_temperature.on('change', (_oldValue: number, newValue: number) => {
-        platform.log.info(`Target Temperature from KNX: ${newValue}`);
-        this.thermostatService.getCharacteristic(platform.Characteristic.TargetTemperature).updateValue(newValue);
+        this.updateTargetTemperature(newValue, 'KNX');
       });
 
       this.thermostatService.getCharacteristic(platform.Characteristic.TargetTemperature)
         .onSet(async (value: CharacteristicValue) => {
-          platform.log.info(`Target Temperature from HomeKit: ${Number(value)}`);
-          dp_set_target_temperature.write(Number(value));
+          const targetTemperature = Number(value);
+          try {
+            dp_set_target_temperature.write(targetTemperature);
+            this.updateTargetTemperature(targetTemperature, 'HomeKit');
+          } catch (error) {
+            platform.log.error(
+              `Failed to write target temperature ${targetTemperature} to KNX: ${
+                error instanceof Error ? error.message : String(error)
+              }`,
+            );
+            throw error;
+          }
         });
     }
 
@@ -221,5 +222,21 @@ export class ThermoAccessory implements AccessoryPlugin {
       setTemp: this.setTemp,
       valvePosition: this.valvePosition,
     });
+  }
+
+  private updateCurrentTemperature(value: number): void {
+    this.hasLiveCurrentTemp = true;
+    this.currentTemp = value;
+    this.platform.log.info(`Current Temperature: ${this.currentTemp}`);
+    this.thermostatService.getCharacteristic(this.platform.Characteristic.CurrentTemperature).updateValue(this.currentTemp);
+    this.recordHistory();
+  }
+
+  private updateTargetTemperature(value: number, source: 'KNX' | 'HomeKit'): void {
+    this.hasLiveSetTemp = true;
+    this.setTemp = value;
+    this.platform.log.info(`Target Temperature from ${source}: ${this.setTemp}`);
+    this.thermostatService.getCharacteristic(this.platform.Characteristic.TargetTemperature).updateValue(this.setTemp);
+    this.recordHistory();
   }
 }
