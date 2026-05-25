@@ -4,6 +4,7 @@ import fakegato from 'fakegato-history';
 import { Connection } from 'knx';
 
 import { ThermoAccessory } from './accessory.js';
+import { parseThermoConfig } from './config.js';
 
 
 export class ThermoPlatform implements StaticPlatformPlugin {
@@ -27,11 +28,12 @@ export class ThermoPlatform implements StaticPlatformPlugin {
     this.uuid = api.hap.uuid;
 
     this.fakeGatoHistoryService = fakegato(this.api);
+    const thermoConfig = parseThermoConfig(config, log);
 
     // connect
     this.connection = new Connection({
-      ipAddr: config.ip ?? '224.0.23.12',
-      ipPort: config.port ?? 3671,
+      ipAddr: thermoConfig.ip,
+      ipPort: thermoConfig.port,
       handlers: {
         connected: () => {
           log.info('KNX connected');
@@ -43,10 +45,8 @@ export class ThermoPlatform implements StaticPlatformPlugin {
     });
 
     // read devices
-    config.devices.forEach((element: Record<string, unknown>) => {
-      if (element.name !== undefined && element.listen_current_temperature) {
-        this.devices.push(new ThermoAccessory(this, element));
-      }
+    thermoConfig.devices.forEach((device) => {
+      this.devices.push(new ThermoAccessory(this, device));
     });
 
     log.info('finished initializing!');

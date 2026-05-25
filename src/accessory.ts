@@ -4,6 +4,7 @@ import { Datapoint } from 'knx';
 
 import { PLUGIN_NAME, PLUGIN_VERSION, PLUGIN_DISPLAY_NAME } from './settings.js';
 
+import type { ThermoDeviceConfig } from './config.js';
 import { ThermoPlatform } from './platform.js';
 
 
@@ -23,7 +24,7 @@ export class ThermoAccessory implements AccessoryPlugin {
 
   constructor(
     private readonly platform: ThermoPlatform,
-    private readonly config: Record<string, unknown>,
+    private readonly config: ThermoDeviceConfig,
   ) {
 
     class EveThermoValvePosition extends platform.Characteristic {
