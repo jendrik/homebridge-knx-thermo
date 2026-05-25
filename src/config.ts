@@ -61,11 +61,25 @@ function readRequiredGroupAddress(
   index: number,
   log: Logging,
 ): string | undefined {
-  const value = readOptionalGroupAddress(record, key, index, log);
+  const value = record[key];
   if (value === undefined) {
     log.warn(`Skipping thermostat at index ${index}: ${key} is required.`);
+    return undefined;
   }
-  return value;
+  if (typeof value === 'string' && GROUP_ADDRESS_PATTERN.test(value)) {
+    return value;
+  }
+  log.warn(`Ignoring ${key} for thermostat at index ${index}: expected a KNX group address like 1/2/3.`);
+  return undefined;
+}
+
+function readPort(config: PlatformConfig, log: Logging): number {
+  if (Number.isInteger(config.port) && Number.isFinite(config.port) && config.port >= 1 && config.port <= 65535) {
+    return config.port;
+  }
+
+  log.warn(`Invalid or missing KNX port configured. Using default port ${DEFAULT_PORT}.`);
+  return DEFAULT_PORT;
 }
 
 function parseDevice(rawDevice: unknown, index: number, log: Logging): ThermoDeviceConfig[] {
@@ -103,8 +117,8 @@ function parseDevice(rawDevice: unknown, index: number, log: Logging): ThermoDev
 }
 
 export function parseThermoConfig(config: PlatformConfig, log: Logging): ThermoPlatformConfig {
-  const ip = typeof config.ip === 'string' && config.ip.trim() !== '' ? config.ip : DEFAULT_IP;
-  const port = typeof config.port === 'number' ? config.port : DEFAULT_PORT;
+  const ip = typeof config.ip === 'string' && config.ip.trim() !== '' ? config.ip.trim() : DEFAULT_IP;
+  const port = readPort(config, log);
   const rawDevices = Array.isArray(config.devices) ? config.devices : [];
 
   if (!Array.isArray(config.devices)) {

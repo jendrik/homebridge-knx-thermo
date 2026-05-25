@@ -40,7 +40,7 @@ export class ThermoAccessory implements AccessoryPlugin {
       }
     }
 
-    this.name = config.name as string;
+    this.name = config.name;
     this.uuid_base = platform.uuid.generate(PLUGIN_NAME + '-' + this.name + '-' + config.listen_current_temperature);
     this.displayName = this.uuid_base;
 
@@ -85,7 +85,7 @@ export class ThermoAccessory implements AccessoryPlugin {
 
     // Current Temperature
     const dp_listen_current_temperature = new Datapoint({
-      ga: config.listen_current_temperature as string,
+      ga: config.listen_current_temperature,
       dpt: 'DPT9.001',
       autoread: true,
     }, platform.connection);
@@ -108,7 +108,7 @@ export class ThermoAccessory implements AccessoryPlugin {
     // Target Temperature
     if (config.listen_target_temperature !== undefined) {
       const dp_listen_target_temperature = new Datapoint({
-        ga: config.listen_target_temperature as string,
+        ga: config.listen_target_temperature,
         dpt: 'DPT9.001',
         autoread: true,
       }, platform.connection);
@@ -131,7 +131,7 @@ export class ThermoAccessory implements AccessoryPlugin {
 
     if (config.set_target_temperature !== undefined) {
       const dp_set_target_temperature = new Datapoint({
-        ga: config.set_target_temperature as string,
+        ga: config.set_target_temperature,
         dpt: 'DPT9.001',
         autoread: true,
       }, platform.connection);
@@ -151,7 +151,7 @@ export class ThermoAccessory implements AccessoryPlugin {
     // HeatingCooling State
     if (config.listen_current_heating_cooling_state !== undefined) {
       const dp_listen_current_heating_cooling_state = new Datapoint({
-        ga: config.listen_current_heating_cooling_state as string,
+        ga: config.listen_current_heating_cooling_state,
         dpt: 'DPT7',
         autoread: true,
       }, platform.connection);
@@ -178,7 +178,7 @@ export class ThermoAccessory implements AccessoryPlugin {
 
     if (config.listen_target_heating_cooling_state !== undefined) {
       const dp_listen_target_heating_cooling_state = new Datapoint({
-        ga: config.listen_target_heating_cooling_state as string,
+        ga: config.listen_target_heating_cooling_state,
         dpt: 'DPT7',
         autoread: true,
       }, platform.connection);
@@ -198,7 +198,7 @@ export class ThermoAccessory implements AccessoryPlugin {
       this.thermostatService.addCharacteristic(EveThermoValvePosition);
 
       const dp_listen_valve_position = new Datapoint({
-        ga: config.listen_valve_position as string,
+        ga: config.listen_valve_position,
         dpt: 'DPT5.001',
         autoread: true,
       }, platform.connection);
